@@ -22,9 +22,9 @@ def get_task_type(task_type):
         case TASK_TYPE.CALL:
             return 1
         case TASK_TYPE.TAKE_IN:
-            return 3
+            return 2918958
         case TASK_TYPE.TAKE_OFF:
-            return 4
+            return 2918962
         case _:
             return 1
 
@@ -35,9 +35,9 @@ def get_task_type(task_type):
     # type_task = custom_field.TextCustomField(name='Тип задачи', code='CF_T_TaskType', auto_create=True)
 
 class Contact(_Contact):
-    telegram_name = custom_field.TextCustomField(name='Имя пользователя Телеграм', field_id=1169429)
-    telegram_id = custom_field.TextCustomField(name='Id пользователя Телеграм', field_id=1169433)
-    phone = custom_field.TextCustomField(name='Телефон контакта', field_id=1169425)
+    telegram_name = custom_field.TextCustomField(name='Имя пользователя Телеграм', field_id=38105)
+    telegram_id = custom_field.TextCustomField(name='Id пользователя Телеграм', field_id=38157)
+    phone = custom_field.TextCustomField(name='Телефон контакта', field_id=38159)
 
 # class Lead(_Lead):
 #     telegram_name = custom_field.TextCustomField(name='Имя пользователя Телеграм',  code='CF_L_TeleName', auto_create=True)

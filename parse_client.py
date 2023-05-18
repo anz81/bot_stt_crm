@@ -84,6 +84,20 @@ class Parse_client:
                 if self.doc.tokens[i].text in fio:
                     left_tokens.remove(i)
 
+        if not payload['attributes']['in_time']:                    # попробуем дожать время, если до этого не нашли
+            for i in left_tokens:
+                print(self.doc.tokens[i].feats)
+                if len(self.doc.tokens[i].text) == 4 and 'Nom' == self.doc.tokens[i].feats['Case']:
+                #     if not i == 0 or not i == len(self.doc.tokens - 1):
+                #         if not ('Nom' == self.doc.tokens[i - 1].feats['Case'] or 'Nom' == self.doc.tokens[i + 1].feats['Case']):
+                            try:
+                                hours = int(self.doc.tokens[i].text[:2])
+                                minutes = int(self.doc.tokens[i].text[2:])
+                                payload['attributes']['in_time'] = datetime.time(hours, minutes, 0, 0)
+                                left_tokens.remove(i)
+                            except Exception as e:
+                                pass
+
         last_phone = ''
         for t in left_tokens:
             last_phone += self.doc.tokens[t].text
@@ -134,7 +148,7 @@ class Parse_client:
                 if len(token.text) == 4:
                     try:
                         hours = int(token.text[:2])
-                        minutes = int(tokens.text[2:])
+                        minutes = int(token.text[2:])
                         event_time = datetime.time(hours, minutes, 0, 0)
                         new_left_tokens.remove(i + 1)
                     except Exception:
