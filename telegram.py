@@ -32,8 +32,8 @@ def reply_to_bot(message, result):
 
 def process_command(message):
     get_actions = parse_client.parse(message.text)
-    # result = crm_client.proceed_actions(get_actions, message)
-    # reply_to_bot(message, result)
+    result = crm_client.proceed_actions(get_actions, message)
+    reply_to_bot(message, result)
 
 @bot.message_handler(commands=['help', 'start'])
 def send_welcome(message):
@@ -61,7 +61,7 @@ def voice_processing(message):
         if not result['status']:
             return reply_to_bot(message, result)
         message.text = result['text']
-        bot.reply_to(message, result['text'])
+        # bot.reply_to(message, result['text'])
         process_command(message)
     except Exception as e:
         print(e)

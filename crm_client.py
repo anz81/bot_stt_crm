@@ -1,7 +1,7 @@
 import datetime
 from amocrm_api.v2 import tokens, Task, Contact as _Contact, Lead as _Lead, custom_field
 from consts import CRM_CLIENT_ID, CRM_CLIENT_SECRET, CRM_SUBDOMAIN, CRM_REDIRECT, CRM_CODE, CRM_FIELD_NAME
-from enums import ACTIONS, SUBJECTS
+from enums import ACTIONS, SUBJECTS, TASK_TYPE
 
 test_payload = {
     'action': ACTIONS.CREATE,
@@ -17,6 +17,17 @@ test_payload = {
     }
 }
 
+def get_task_type(task_type):
+    match task_type:
+        case TASK_TYPE.CALL:
+            return 1
+        case TASK_TYPE.TAKE_IN:
+            return 3
+        case TASK_TYPE.TAKE_OFF:
+            return 4
+        case _:
+            return 1
+
 # class Task(_Task):
     # telegram_name = custom_field.TextCustomField(name='Имя пользователя Телеграм', code='CF_T_TeleName', auto_create=True)
     # telegram_id = custom_field.TextCustomField(name='Id пользователя Телеграм', code='CF_T_TeleId', auto_create=True)
@@ -28,9 +39,10 @@ class Contact(_Contact):
     telegram_id = custom_field.TextCustomField(name='Id пользователя Телеграм', field_id=1169433)
     phone = custom_field.TextCustomField(name='Телефон контакта', field_id=1169425)
 
-class Lead(_Lead):
-    telegram_name = custom_field.TextCustomField(name='Имя пользователя Телеграм',  code='CF_L_TeleName', auto_create=True)
-    telegram_id = custom_field.TextCustomField(name='Id пользователя Телеграм', code='CF_L_TeleId', auto_create=True)
+# class Lead(_Lead):
+#     telegram_name = custom_field.TextCustomField(name='Имя пользователя Телеграм',  code='CF_L_TeleName', auto_create=True)
+#     telegram_id = custom_field.TextCustomField(name='Id пользователя Телеграм', code='CF_L_TeleId', auto_create=True)
+
 
 class CRM_client:
     def __init__(self):
@@ -181,9 +193,9 @@ class CRM_client:
             task = Task()
             # if 'task_type' in payload['attributes'].keys():
             #     task.type_task = payload['attributes']['task_type']
-            if 'date' in payload['attributes'].keys():
+            if not payload['attributes']['date'] == None:
                 new_date = 0
-                if 'in_time' in payload['attributes'].keys():
+                if not payload['attributes']['in_time'] == None:
                     new_date = datetime.datetime.combine(payload['attributes']['date'], payload['attributes']['in_time'])
                 else:
                     new_date = datetime.datetime.combine(payload['attributes']['date'], datetime.time(23, 59, 59, 0))
@@ -191,6 +203,8 @@ class CRM_client:
             task.entity_id = contact.id
             task.entity_type = 'contacts'
             task.is_completed = False
+            if not payload['attributes']['task_type'] == None:
+                task.task_type_id = get_task_type(payload['attributes']['task_type'])
             task.text = message.text
             task.save()
             return {'status': True, 'text': f'Задача для контакта {contact_name} создана\n{result_create["text"]}'}
@@ -221,7 +235,7 @@ class CRM_client:
                         break
                 if not task.id == None:
                     if not payload['attributes']['task_type'] == None:
-                        task.type_task = payload['attributes']['task_type']
+                        task.task_type_id = get_task_type(payload['attributes']['task_type'])
                     new_date = 0
                     if not payload['attributes']['date'] == None:
                         if not payload['attributes']['in_time'] == None:
@@ -262,7 +276,6 @@ class CRM_client:
                 task_filtered = list(filter(lambda t: t.entity_id == contact.id and not t.is_completed, Task.objects.all()))
                 if len(task_filtered) > 0:
                     task = task_filtered[0]
-                    print(task)
                     task.is_completed = True
                     task.result = {'text': 'Задача удалена пользователем'}
                     task.text += '\n' + message.text
@@ -281,3 +294,7 @@ class CRM_client:
                 return {'status': False, 'text': f'Вы не можете удалить задачу для {contact_name}'}
         else:
             return {'status': False, 'text': f'Контакт {contact_name} не найден, задача не может быть удалена'}
+
+    def temp(self):
+        tasks = list(filter(lambda t: not t.is_completed, Task.objects.all()))
+        print(tasks[0])
