@@ -9,8 +9,8 @@ from bot_dict import bot_dict
 class Parse_client:
     def parse(self, message):
         payload = {
-            'action': ACTIONS.UNDEFINED,
-            'subject': SUBJECTS.UNDEFINED,
+            'action': ACTIONS.UNPARSED,
+            'subject': SUBJECTS.UNPARSED,
             'attributes': {
                 'name': None,
                 'phone': None,
@@ -40,34 +40,41 @@ class Parse_client:
         for i in range(0, len(self.doc.tokens)):
             left_tokens.append(i)
         for i in range(0, len(self.doc.tokens)):
-            token = self.doc.tokens[i]
-            token.lemmatize(morph_vocab)
-            if token.pos == 'VERB' and (token.rel == 'root' or token.rel == 'xcomp'):         # выделяем что какое действие нужно совершить
-                payload['action'] = self.parse_action(token.lemma)
-                left_tokens.remove(i)
-            if token.pos == 'NOUN' and token.rel == 'obj':          # выделяем с каким субъектом нужно совершить действие
-                payload['subject'] = self.parse_subject(token.lemma)
-                left_tokens.remove(i)
-            if token.pos =='VERB' and token.rel == 'nmod':          # выделяем тип задачи
-                payload['attributes']['task_type'] = self.get_task_type(token.lemma)
-                left_tokens.remove(i)
-            if token.pos == 'ADP' and token.rel == 'case':          # выделяем время задачи
-                payload, left_tokens = self.parse_time_event(i, payload, left_tokens)
-
-        matches = dates_extractor(message)                          # ищем даты в тексте
-        dates = [i.fact.as_json for i in matches]
-        if len(dates) > 0:
-            payload['attributes']['date'] = self.form_date(dates[0])
-            values = []
-            if 'year' in dates[0].keys():
-                values.append(str(dates[0]['year']))
-            if 'month' in dates[0].keys():
-                values.append(str(dates[0]['month']))
-            if 'day' in dates[0].keys():
-                values.append(str(dates[0]['day']))
-            for i in range(0, len(self.doc.tokens)):
-                if self.doc.tokens[i].text in values:
+            self.doc.tokens[i].lemmatize(morph_vocab)
+            result = self.get_dict_keys(self.doc.tokens, i)
+            if result['found']:
+                if result['up_key'] in ['action', 'subject']:       # если нашлось дейсвие или субъект
+                    payload[result['up_key']] = bot_dict[result['up_key']][result['down_key']]['code']
                     left_tokens.remove(i)
+                if result['up_key'] == 'task_type':                 # если нашелся тип задачи
+                    payload['attributes']['task_type'] = bot_dict[result['up_key']][result['down_key']]['code']
+                    for j in range(0, result['parts_value']):
+                        left_tokens.remove(i + j)
+                if result['up_key'] == 'date_phrase':               # если нашлась отсылка к дате
+                    date = datetime.datetime.now()
+                    date += datetime.timedelta(days=bot_dict[result['up_key']][result['down_key']]['code'])
+                    payload['attributes']['date'] = date.date()
+                    left_tokens.remove(i)
+            if self.doc.tokens[i].pos == 'ADP' and self.doc.tokens[i].rel == 'case':          # выделяем время задачи
+                result = self.parse_time_event(i, payload, left_tokens)
+                if result:
+                    payload, left_tokens = result
+
+        if not payload['attributes']['date']:
+            matches = dates_extractor(message)                          # ищем даты в тексте
+            dates = [i.fact.as_json for i in matches]
+            if len(dates) > 0:
+                payload['attributes']['date'] = self.form_date(dates[0])
+                values = []
+                if 'year' in dates[0].keys():
+                    values.append(str(dates[0]['year']))
+                if 'month' in dates[0].keys():
+                    values.append(str(dates[0]['month']))
+                if 'day' in dates[0].keys():
+                    values.append(str(dates[0]['day']))
+                for i in range(0, len(self.doc.tokens)):
+                    if self.doc.tokens[i].text in values:
+                        left_tokens.remove(i)
 
         if len(self.doc.spans) > 0:                                 # ищем ФИО в тексте
             self.doc.spans[0].normalize(morph_vocab)
@@ -87,21 +94,6 @@ class Parse_client:
 
         print(payload)
         return payload
-
-    def parse_action(self, word):
-        if word in bot_dict['commands']['create']:
-            return ACTIONS.CREATE
-        if word in bot_dict['commands']['change']:
-            return ACTIONS.CHANGE
-        if word in bot_dict['commands']['delete']:
-            return ACTIONS.DELETE
-        return ACTIONS.UNPARSED
-
-    def parse_subject(self, word):
-        match word:
-            case 'задача': return SUBJECTS.TASK
-            case 'контакт': return SUBJECTS.CONTACT
-            case _: return SUBJECTS.UNPARSED
 
     def form_date(self, date_obj):
         day = 0
@@ -128,7 +120,7 @@ class Parse_client:
     def parse_time_event(self, i, payload, left_tokens):
         _payload = payload
         event_time = None
-        if self.doc.tokens[i].text not in ('с', 'в', 'по'):         # если не эти 3 предлога, то выходим
+        if self.doc.tokens[i].text not in ('с', 'в', 'по', 'до'):         # если не эти 3 предлога, то выходим
             return None
         new_left_tokens = left_tokens
         new_left_tokens.remove(i)
@@ -139,6 +131,15 @@ class Parse_client:
             # if token.text == 'часов':                             # TODO: время можно написать в формате восемь часов пять минут
             #     event_time = ''                                   # этот кейс сейчас не обрабатывается
             if token.rel == 'nummod':
+                if len(token.text) == 4:
+                    try:
+                        hours = int(token.text[:2])
+                        minutes = int(tokens.text[2:])
+                        event_time = datetime.time(hours, minutes, 0, 0)
+                        new_left_tokens.remove(i + 1)
+                    except Exception:
+                        print('>>>>>>>> Can\'t parse time!!! p.0')
+                        print(self.doc.tokens)
                 if '-' in token.text:                               # если время записано в формате 19-30
                     time_part = token.text.split('-')
                     if len(time_part) != 2:
@@ -171,6 +172,8 @@ class Parse_client:
                     _payload['attributes']['in_time'] = event_time
                 case 'по':
                     _payload['attributes']['to_time'] = event_time
+                case 'до':
+                    _payload['attributes']['to_time'] = event_time
         return _payload, new_left_tokens
 
     def phone_extract(self, text):
@@ -184,8 +187,21 @@ class Parse_client:
                 valid_items.append(item)
         return valid_items
 
-    def get_task_type(text):
-        for t in bot_dict['task_types'].keys():
-            if text in bot_dict['task_types'][t]:
-                return t
-        return 'не определено'
+    def get_dict_keys(self, tokens, index):
+        for up_key in bot_dict.keys():
+            for down_key in bot_dict[up_key].keys():
+                values = bot_dict[up_key][down_key]['values']
+                if tokens[index].lemma in values:
+                    return {'found': True, 'up_key': up_key, 'down_key': down_key, 'parts_value': 1}
+                for value in values:
+                    if ' ' in value:
+                        word_parts = value.split(' ')
+                        if index <= len(tokens) - len(word_parts):
+                            flag = True
+                            for i in range(0, len(word_parts)):
+                                if not tokens[index + i].text == word_parts[i]:
+                                    flag = False
+                                    break
+                            if flag:
+                                return {'found': True, 'up_key': up_key, 'down_key': down_key, 'parts_value': len(word_parts)}
+        return {'found': False}

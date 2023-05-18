@@ -22,3 +22,8 @@ class ATTRIBUTES(Enum):
     TO_TIME = 6
     TASK_TYPE = 7
     UNPARSED = 8
+
+class TASK_TYPE(Enum):
+    CALL = 1
+    TAKE_IN = 2
+    TAKE_OFF = 3
