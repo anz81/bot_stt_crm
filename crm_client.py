@@ -39,9 +39,10 @@ class Contact(_Contact):
     telegram_id = custom_field.TextCustomField(name='Id пользователя Телеграм', field_id=38157)
     phone = custom_field.TextCustomField(name='Телефон контакта', field_id=38159)
 
-# class Lead(_Lead):
-#     telegram_name = custom_field.TextCustomField(name='Имя пользователя Телеграм',  code='CF_L_TeleName', auto_create=True)
-#     telegram_id = custom_field.TextCustomField(name='Id пользователя Телеграм', code='CF_L_TeleId', auto_create=True)
+class Lead(_Lead):
+    pass
+    # telegram_name = custom_field.TextCustomField(name='Имя пользователя Телеграм',  code='CF_L_TeleName', auto_create=True)
+    # telegram_id = custom_field.TextCustomField(name='Id пользователя Телеграм', code='CF_L_TeleId', auto_create=True)
 
 
 class CRM_client:
@@ -207,6 +208,10 @@ class CRM_client:
                 task.task_type_id = get_task_type(payload['attributes']['task_type'])
             task.text = message.text
             task.save()
+            lead = Lead()
+            lead.create()
+            lead.contacts.append(contact)
+            lead.save()
             return {'status': True, 'text': f'Задача для контакта {contact_name} создана\n{result_create["text"]}'}
         else:
             return {'status': False, 'text': f'Вы не можете создать задачу для {contact_name}'}
@@ -280,13 +285,10 @@ class CRM_client:
                     task.result = {'text': 'Задача удалена пользователем'}
                     task.text += '\n' + message.text
                     task.save()
-                    # leads = contact._embedded.leads
-                    # for l in leads:
-                    #     lead = Lead.objects.get(l.id)
-                    #     if not lead.is_deleted:
-                    #         lead.is_deleted = True
-                    #         lead.save()
-                    #         break
+                    leads = list(contact.leads)
+                    if len(leads) > 0:
+                        leads[0].status_id = 143
+                        leads[0].save()
                     return {'status': True, 'text': f'Задача для контакта {contact_name} удалена'}
                 else:
                     return {'status': False, 'text': f'Нет незакрытых задач для контакта {contact_name}'}

@@ -3,7 +3,7 @@ bot_dict = {
     'action': {
         'create': {'values': ['создай', 'создать', 'сделать', 'сделай'], 'code': ACTIONS.CREATE},
         'change': {'values': ['измени', 'изменить', 'исправь', 'исправить'], 'code': ACTIONS.CHANGE},
-        'delete': {'values': ['удали', 'удалить', ], 'code': ACTIONS.DELETE},
+        'delete': {'values': ['удали', 'удалить'], 'code': ACTIONS.DELETE},
     },
     'subject': {
         'task': {'values': ['задача'], 'code': SUBJECTS.TASK},

@@ -205,7 +205,7 @@ class Parse_client:
         for up_key in bot_dict.keys():
             for down_key in bot_dict[up_key].keys():
                 values = bot_dict[up_key][down_key]['values']
-                if tokens[index].lemma in values:
+                if tokens[index].lemma in values or tokens[index].text in values:
                     return {'found': True, 'up_key': up_key, 'down_key': down_key, 'parts_value': 1}
                 for value in values:
                     if ' ' in value:

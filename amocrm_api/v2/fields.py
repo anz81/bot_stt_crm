@@ -27,6 +27,8 @@ class _BaseField:
         data = instance._data
         for _path in self._path:
             data = data.get(_path, {})
+        if self.name == 'contacts' and not 'contacts' in data.keys():
+            data['contacts'] = []
         if isinstance(data, dict):
             data = data.get(self.name)
         else:
@@ -169,6 +171,9 @@ class _EmbeddedLinkListField(_Link):
     _path = [
         "_embedded",
     ]
+
+    def __init__(self, name, model, links=LinksInteraction(), manager=None):
+        super().__init__(name, model, links, manager)
 
     def on_get_instance(self, instance, value):
         return _ListData(data=value, model=self._model, manager=self._manager, instance=instance, links=self._links)
