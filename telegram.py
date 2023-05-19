@@ -66,7 +66,7 @@ def voice_processing(message):
     except Exception as e:
         print(e)
     os.remove(file_name_full)
-    os.remove(file_name_full_converted)
+    # os.remove(file_name_full_converted)
 
 crm_client = CRM_client()
 parse_client = Parse_client()
