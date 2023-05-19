@@ -37,6 +37,7 @@ class Parse_client:
         self.doc.tag_ner(ner_tagger)
         self.doc.parse_syntax(syntax_parser)
         left_tokens = []
+        # print(self.doc.tokens)
         for i in range(0, len(self.doc.tokens)):
             left_tokens.append(i)
         for i in range(0, len(self.doc.tokens)):
@@ -46,16 +47,16 @@ class Parse_client:
                 if result['up_key'] in ['action', 'subject']:       # если нашлось дейсвие или субъект
                     payload[result['up_key']] = bot_dict[result['up_key']][result['down_key']]['code']
                     left_tokens.remove(i)
-                if result['up_key'] == 'task_type':                 # если нашелся тип задачи
+                elif result['up_key'] == 'task_type':                 # если нашелся тип задачи
                     payload['attributes']['task_type'] = bot_dict[result['up_key']][result['down_key']]['code']
                     for j in range(0, result['parts_value']):
                         left_tokens.remove(i + j)
-                if result['up_key'] == 'date_phrase':               # если нашлась отсылка к дате
+                elif result['up_key'] == 'date_phrase':               # если нашлась отсылка к дате
                     date = datetime.datetime.now()
                     date += datetime.timedelta(days=bot_dict[result['up_key']][result['down_key']]['code'])
                     payload['attributes']['date'] = date.date()
                     left_tokens.remove(i)
-            if self.doc.tokens[i].pos == 'ADP' and self.doc.tokens[i].rel == 'case':          # выделяем время задачи
+            elif self.doc.tokens[i].pos == 'ADP' and self.doc.tokens[i].rel == 'case':          # выделяем время задачи
                 result = self.parse_time_event(i, payload, left_tokens)
                 if result:
                     payload, left_tokens = result
@@ -86,8 +87,7 @@ class Parse_client:
 
         if not payload['attributes']['in_time']:                    # попробуем дожать время, если до этого не нашли
             for i in left_tokens:
-                print(self.doc.tokens[i].feats)
-                if len(self.doc.tokens[i].text) == 4 and 'Nom' == self.doc.tokens[i].feats['Case']:
+                if len(self.doc.tokens[i].text) == 4 and 'Case' in self.doc.tokens[i].feats.keys() and 'Nom' == self.doc.tokens[i].feats['Case']:
                 #     if not i == 0 or not i == len(self.doc.tokens - 1):
                 #         if not ('Nom' == self.doc.tokens[i - 1].feats['Case'] or 'Nom' == self.doc.tokens[i + 1].feats['Case']):
                             try:
