@@ -78,12 +78,18 @@ class Parse_client:
                         left_tokens.remove(i)
 
         if len(self.doc.spans) > 0:                                 # ищем ФИО в тексте
-            self.doc.spans[0].normalize(morph_vocab)
-            payload['attributes']['name'] = self.doc.spans[0].normal
-            fio = self.doc.spans[0].text.split(' ')
-            for i in range(0, len(self.doc.tokens)):
-                if self.doc.tokens[i].text in fio:
-                    left_tokens.remove(i)
+            fio = ''
+            for span in self.doc.spans:
+                span.normalize(morph_vocab)
+                if len(fio) > 0:
+                    fio += ' '
+                fio += span.normal
+                for t in span.tokens:
+                    for i in left_tokens:
+                        if self.doc.tokens[i].id == t.id:
+                            left_tokens.remove(i)
+                            break
+            payload['attributes']['name'] = fio
 
         if not payload['attributes']['in_time']:                    # попробуем дожать время, если до этого не нашли
             for i in left_tokens:
