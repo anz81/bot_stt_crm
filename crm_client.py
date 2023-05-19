@@ -287,7 +287,8 @@ class CRM_client:
                     task.save()
                     leads = list(contact.leads)
                     if len(leads) > 0:
-                        leads[0].status_id = 143
+                        leads[0].status = 143
+                        leads[0].closed_at = datetime.datetime.now()
                         leads[0].save()
                     return {'status': True, 'text': f'Задача для контакта {contact_name} удалена'}
                 else:
@@ -298,5 +299,22 @@ class CRM_client:
             return {'status': False, 'text': f'Контакт {contact_name} не найден, задача не может быть удалена'}
 
     def temp(self):
-        tasks = list(filter(lambda t: not t.is_completed, Task.objects.all()))
-        print(tasks[0])
+        # tasks = Contact.objects.get(90389)  #
+        # leads = list(tasks.leads)
+        # data = {
+        #     'lead[STATUS]': 143,
+        #     'ID': 30413#leads[0].id
+        # }
+        # headers = {
+        #     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        #     'Accept': 'application/json, text/javascript, */*; q=0.01'
+        # }
+        # Lead.objects.request(method='POST', path='ajax/leads/detail/', headers=headers, data=data)
+        # tasks = Contact.objects.get(90389)  #
+        # leads = list(tasks.leads)
+        # print(leads[0])
+
+        lead = Lead.objects.get(30413)
+        lead.status = 143
+        lead.closed_at = datetime.datetime.now()
+        lead.save()
