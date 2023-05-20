@@ -5,6 +5,7 @@ import speech_recognition as sr
 from crm_client import CRM_client
 from parse_client import Parse_client
 from consts import TELEGRAM_API_KEY
+from stt import STT
 
 bot = telebot.TeleBot(TELEGRAM_API_KEY)
 r = sr.Recognizer()
@@ -57,11 +58,13 @@ def voice_processing(message):
         new_file.write(downloaded_file)
     os.system("ffmpeg -i " + file_name_full + "  " + file_name_full_converted)
     try:
+        # stt = STT()
+        # result = stt.audio_to_text(file_name_full)
         result = recognise(file_name_full_converted)
         if not result['status']:
             return reply_to_bot(message, result)
         message.text = result['text']
-        # bot.reply_to(message, result['text'])
+        bot.reply_to(message, result['text'])
         process_command(message)
     except Exception as e:
         print(e)

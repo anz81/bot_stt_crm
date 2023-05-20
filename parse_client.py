@@ -103,6 +103,18 @@ class Parse_client:
                                 left_tokens.remove(i)
                             except Exception as e:
                                 pass
+                elif ':' in self.doc.tokens[i]:
+                    if i - 1 in left_tokens and i + 1 in left_tokens:
+                        try:
+                            hours = int(self.doc.tokens[i - 1].text)
+                            minutes = int(self.doc.tokens[i + 1].text)
+                            payload['attributes']['in_time'] = datetime.time(hours, minutes, 0, 0)
+                            left_tokens.remove(i - 1)
+                            left_tokens.remove(i + 1)
+                            left_tokens.remove(i)
+                        except Exception as e:
+                            pass
+
 
         last_phone = ''
         for t in left_tokens:
