@@ -28,7 +28,7 @@ class Parse_client:
         morph_tagger = NewsMorphTagger(emb)
         syntax_parser = NewsSyntaxParser(emb)
         ner_tagger = NewsNERTagger(emb)
-        names_extractor = NamesExtractor(morph_vocab)
+        self.names_extractor = NamesExtractor(morph_vocab)
         dates_extractor = DatesExtractor(morph_vocab)
 
         self.doc = Doc(message)
@@ -78,18 +78,7 @@ class Parse_client:
                         left_tokens.remove(i)
 
         if len(self.doc.spans) > 0:                                 # ищем ФИО в тексте
-            fio = ''
-            for span in self.doc.spans:
-                span.normalize(morph_vocab)
-                if len(fio) > 0:
-                    fio += ' '
-                fio += span.normal
-                for t in span.tokens:
-                    for i in left_tokens:
-                        if self.doc.tokens[i].id == t.id:
-                            left_tokens.remove(i)
-                            break
-            payload['attributes']['name'] = fio
+            payload['attributes']['name'], left_tokens = self.get_name(message, left_tokens)
 
         if not payload['attributes']['in_time']:                    # попробуем дожать время, если до этого не нашли
             for i in left_tokens:
@@ -126,6 +115,35 @@ class Parse_client:
 
         print(payload)
         return payload
+
+    def get_name(self, message, left_tokens):
+        names = self.names_extractor(message)
+        new_left_tokens = left_tokens
+        fio = ''
+        for span in self.doc.spans:
+            for n in names:
+                f = n.fact
+                if (f.first and f.first in span.text) or (f.last and f.last in span.text) or (f.middle and f.middle in span.text):
+                    if f.last:
+                        for i in left_tokens:
+                            if self.doc.tokens[i].text == f.last:
+                                new_left_tokens.remove(i)
+                                fio = self.doc.tokens[i].lemma.capitalize()
+                    if f.first:
+                        for i in left_tokens:
+                            if self.doc.tokens[i].text == f.first:
+                                new_left_tokens.remove(i)
+                                if len(fio) > 0:
+                                    fio += ' '
+                                fio += self.doc.tokens[i].lemma.capitalize()
+                    if f.middle:
+                        for i in left_tokens:
+                            if self.doc.tokens[i].text == f.middle:
+                                new_left_tokens.remove(i)
+                                if len(fio) > 0:
+                                    fio += ' '
+                                fio += self.doc.tokens[i].lemma.capitalize()
+                    return fio, new_left_tokens
 
     def form_date(self, date_obj):
         day = 0

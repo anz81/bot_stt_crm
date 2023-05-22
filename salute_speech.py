@@ -54,7 +54,7 @@ class Salute_Speech():
                 text = ''
                 for sentence in response.json()['result']:
                     text += sentence
-                return {'status': True, 'text': self.caps_words(text)}
+                return {'status': True, 'text': text}
         return {'status': False, 'text': 'Не получилось распознать текст'}
 
     def caps_words(self, text):
