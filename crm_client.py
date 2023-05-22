@@ -1,6 +1,6 @@
 import datetime
 from amocrm_api.v2 import tokens, Task, Contact as _Contact, Lead as _Lead, custom_field
-from consts import CRM_CLIENT_ID, CRM_CLIENT_SECRET, CRM_SUBDOMAIN, CRM_REDIRECT, CRM_CODE, CRM_FIELD_NAME
+from consts import CRM_CLIENT_ID, CRM_CLIENT_SECRET, CRM_SUBDOMAIN, CRM_REDIRECT, CRM_CODE
 from enums import ACTIONS, SUBJECTS, TASK_TYPE
 
 test_payload = {
