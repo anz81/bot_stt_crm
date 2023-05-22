@@ -22,26 +22,26 @@ class Parse_client:
             }
         }
 
-        segmenter = Segmenter()
-        morph_vocab = MorphVocab()
+        self.segmenter = Segmenter()
+        self.morph_vocab = MorphVocab()
         emb = NewsEmbedding()
-        morph_tagger = NewsMorphTagger(emb)
-        syntax_parser = NewsSyntaxParser(emb)
-        ner_tagger = NewsNERTagger(emb)
-        self.names_extractor = NamesExtractor(morph_vocab)
-        dates_extractor = DatesExtractor(morph_vocab)
+        self.morph_tagger = NewsMorphTagger(emb)
+        self.syntax_parser = NewsSyntaxParser(emb)
+        self.ner_tagger = NewsNERTagger(emb)
+        self.names_extractor = NamesExtractor(self.morph_vocab)
+        dates_extractor = DatesExtractor(self.morph_vocab)
 
         self.doc = Doc(message)
-        self.doc.segment(segmenter)
-        self.doc.tag_morph(morph_tagger)
-        self.doc.tag_ner(ner_tagger)
-        self.doc.parse_syntax(syntax_parser)
+        self.doc.segment(self.segmenter)
+        self.doc.tag_morph(self.morph_tagger)
+        self.doc.tag_ner(self.ner_tagger)
+        self.doc.parse_syntax(self.syntax_parser)
         left_tokens = []
         # print(self.doc.tokens)
         for i in range(0, len(self.doc.tokens)):
             left_tokens.append(i)
         for i in range(0, len(self.doc.tokens)):
-            self.doc.tokens[i].lemmatize(morph_vocab)
+            self.doc.tokens[i].lemmatize(self.morph_vocab)
             result = self.get_dict_keys(self.doc.tokens, i)
             if result['found']:
                 if result['up_key'] in ['action', 'subject']:       # если нашлось дейсвие или субъект
@@ -77,8 +77,7 @@ class Parse_client:
                     if self.doc.tokens[i].text in values:
                         left_tokens.remove(i)
 
-        if len(self.doc.spans) > 0:                                 # ищем ФИО в тексте
-            payload['attributes']['name'], left_tokens = self.get_name(message, left_tokens)
+        payload['attributes']['name'], left_tokens = self.get_name(message, left_tokens)        # ищем ФИО в тексте
 
         if not payload['attributes']['in_time']:                    # попробуем дожать время, если до этого не нашли
             for i in left_tokens:
@@ -107,9 +106,10 @@ class Parse_client:
 
         last_phone = ''
         for t in left_tokens:
-            last_phone += self.doc.tokens[t].text
+            if not self.doc.tokens[t].pos == 'PUNCT':
+                last_phone += self.doc.tokens[t].text
 
-        phone_items = self.phone_extract(last_phone)
+        phone_items = self.phone_extract(last_phone.replace(',', '').replace('.', ''))
         if len(phone_items) > 0:
             payload['attributes']['phone'] = phone_items[0]
 
@@ -117,33 +117,53 @@ class Parse_client:
         return payload
 
     def get_name(self, message, left_tokens):
-        names = self.names_extractor(message)
+        names = [i.fact for i in self.names_extractor(message)]
         new_left_tokens = left_tokens
         fio = ''
-        for span in self.doc.spans:
-            for n in names:
-                f = n.fact
-                if (f.first and f.first in span.text) or (f.last and f.last in span.text) or (f.middle and f.middle in span.text):
-                    if f.last:
-                        for i in left_tokens:
-                            if self.doc.tokens[i].text == f.last:
-                                new_left_tokens.remove(i)
-                                fio = self.doc.tokens[i].lemma.capitalize()
-                    if f.first:
-                        for i in left_tokens:
-                            if self.doc.tokens[i].text == f.first:
-                                new_left_tokens.remove(i)
-                                if len(fio) > 0:
-                                    fio += ' '
-                                fio += self.doc.tokens[i].lemma.capitalize()
-                    if f.middle:
-                        for i in left_tokens:
-                            if self.doc.tokens[i].text == f.middle:
-                                new_left_tokens.remove(i)
-                                if len(fio) > 0:
-                                    fio += ' '
-                                fio += self.doc.tokens[i].lemma.capitalize()
-                    return fio, new_left_tokens
+        for j in left_tokens:
+            token = self.doc.tokens[j]
+            if token.pos == 'PROPN':
+                for f in names:
+                    if (f.first and f.first in token.text) or (f.last and f.last in token.text) or (f.middle and f.middle in token.text):
+                        if f.last:
+                            for i in left_tokens:
+                                if self.doc.tokens[i].text == f.last:
+                                    new_left_tokens.remove(i)
+                                    fio = self.doc.tokens[i].text.capitalize()
+                        if f.first:
+                            for i in left_tokens:
+                                if self.doc.tokens[i].text == f.first:
+                                    new_left_tokens.remove(i)
+                                    if len(fio) > 0:
+                                        fio += ' '
+                                    fio += self.doc.tokens[i].text.capitalize()
+                        if f.middle:
+                            for i in left_tokens:
+                                if self.doc.tokens[i].text == f.middle:
+                                    new_left_tokens.remove(i)
+                                    if len(fio) > 0:
+                                        fio += ' '
+                                    fio += self.doc.tokens[i].text.capitalize()
+                        doc = Doc(fio)
+                        doc.segment(self.segmenter)
+                        doc.tag_morph(self.morph_tagger)
+                        doc.tag_ner(self.ner_tagger)
+                        gender_y = 0
+                        gender_x = 0
+                        for token in doc.morph.tokens:          # наташа может неправильно определять пол в ФИО, нужно править
+                            # token.feats['Case'] = 'Nom'
+                            if token.feats['Gender'] == 'Fem':
+                                gender_y += 1
+                            if token.feats['Gender'] == 'Masc':
+                                gender_x += 1
+                        need_male = 'Fem'
+                        if gender_x > gender_y:
+                            need_male = 'Masc'
+                        for token in doc.morph.tokens:
+                            token.feats['Gender'] = need_male
+                        doc.spans[0].normalize(self.morph_vocab)
+                        return doc.spans[0].normal, new_left_tokens
+        return '', new_left_tokens
 
     def form_date(self, date_obj):
         day = 0
@@ -234,7 +254,7 @@ class Parse_client:
         valid_items = []
         for item in items:
             if len(item.replace(' ', '')) > 5:
-                valid_items.append(item)
+                valid_items.append(item.replace('-', ''))
         return valid_items
 
     def get_dict_keys(self, tokens, index):
