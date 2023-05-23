@@ -6,6 +6,12 @@ from enums import ACTIONS, SUBJECTS
 from bot_dict import bot_dict
 
 
+def part_of_date_to_str(part):
+    if part < 10:
+        return f'0{part}'
+    else:
+        return str(part)
+
 class Parse_client:
     def parse(self, message):
         payload = {
@@ -41,6 +47,8 @@ class Parse_client:
         for i in range(0, len(self.doc.tokens)):
             left_tokens.append(i)
         for i in range(0, len(self.doc.tokens)):
+            if not i in left_tokens:
+                continue
             self.doc.tokens[i].lemmatize(self.morph_vocab)
             result = self.get_dict_keys(self.doc.tokens, i)
             if result['found']:
@@ -67,14 +75,18 @@ class Parse_client:
             if len(dates) > 0:
                 payload['attributes']['date'] = self.form_date(dates[0])
                 values = []
-                if 'year' in dates[0].keys():
-                    values.append(str(dates[0]['year']))
-                if 'month' in dates[0].keys():
-                    values.append(str(dates[0]['month']))
+                value_str = ''
                 if 'day' in dates[0].keys():
                     values.append(str(dates[0]['day']))
+                    value_str = part_of_date_to_str(dates[0]['day'])
+                if 'month' in dates[0].keys():
+                    values.append(str(dates[0]['month']))
+                    value_str += '.' + part_of_date_to_str(dates[0]['month'])
+                if 'year' in dates[0].keys():
+                    values.append(str(dates[0]['year']))
+                    value_str += '.' + str(dates[0]['year'])
                 for i in range(0, len(self.doc.tokens)):
-                    if self.doc.tokens[i].text in values:
+                    if self.doc.tokens[i].text in values or value_str in self.doc.tokens[i].text:
                         left_tokens.remove(i)
 
         payload['attributes']['name'], left_tokens = self.get_name(message, left_tokens)        # ищем ФИО в тексте
@@ -210,7 +222,7 @@ class Parse_client:
                     except Exception:
                         print('>>>>>>>> Can\'t parse time!!! p.0')
                         print(self.doc.tokens)
-                if '-' in token.text:                               # если время записано в формате 19-30
+                elif '-' in token.text:                               # если время записано в формате 19-30
                     time_part = token.text.split('-')
                     if len(time_part) != 2:
                         print('>>>>>>>> Can\'t parse time!!! p.1')
@@ -223,7 +235,7 @@ class Parse_client:
                     except Exception:
                         print('>>>>>>>> Can\'t parse time!!! p.2')
                         print(self.doc.tokens)
-                if self.doc.tokens[i + 2].text == ':':              # если время записано в формате 19:30
+                elif self.doc.tokens[i + 2].text == ':':              # если время записано в формате 19:30
                     try:
                         hours = int(token.text)
                         minutes = int(self.doc.tokens[i + 3].text)
@@ -233,6 +245,14 @@ class Parse_client:
 
                     except Exception:
                         print('>>>>>>>> Can\'t parse time!!! p.3')
+                        print(self.doc.tokens)
+                elif len(token.text) <= 2:
+                    try:
+                        hours = int(token.text)
+                        event_time = datetime.time(hours, 0, 0, 0)
+                        new_left_tokens.remove(i + 1)
+                    except Exception:
+                        print('>>>>>>>> Can\'t parse time!!! p.0')
                         print(self.doc.tokens)
         if event_time:
             match self.doc.tokens[i].text:
