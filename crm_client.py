@@ -107,7 +107,7 @@ class CRM_client:
         contact.telegram_name=telegram_name
         contact.telegram_id=telegram_id
         contact.tags=[{'name':telegram_id}]
-        contact.text = message.text
+        # contact.text = message.text
         contact.save()
         return {'status': True, 'text': f'Контакт {contact_name} создан'}
 
@@ -134,10 +134,10 @@ class CRM_client:
             if not telegram_id == contact.telegram_id:
                 return {'status': False, 'text': f'Вы не можете менять контакт {contact_name}'}
             contact.phone = contact_phone
-            if contact.text:
-                contact.text += '\n' + message.text
-            else:
-                contact.text = message.text
+            # if contact.text:
+            #     contact.text += '\n' + message.text
+            # else:
+            #     contact.text = message.text
             contact.save()
             return {'status': True, 'text': f'Изменения для контакта {contact_name} внесены'}
         else:
@@ -160,7 +160,7 @@ class CRM_client:
             contact = contacts[0]
             if telegram_id == contact.telegram_id:
                 contact.tags = []
-                contact.text += '\n' + message.text
+                # contact.text += '\n' + message.text
                 contact.save()
                 return {'status': True, 'text': f'Контакт {contact_name} удален'}
             else:

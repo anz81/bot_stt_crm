@@ -54,6 +54,7 @@ class Salute_Speech():
                 text = ''
                 for sentence in response.json()['result']:
                     text += sentence
+                print(text)
                 return {'status': True, 'text': text}
         return {'status': False, 'text': 'Не получилось распознать текст'}
 

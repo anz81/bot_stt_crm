@@ -36,6 +36,7 @@ def reply_to_bot(message, result):
 def process_command(message):
     get_actions = parse_client.parse(message.text)
     result = crm_client.proceed_actions(get_actions, message)
+    print(result['text'])
     reply_to_bot(message, result)
 
 @bot.message_handler(commands=['help', 'start'])
