@@ -1,7 +1,7 @@
 import datetime
 import re
 from natasha import Segmenter, MorphVocab, NewsEmbedding, NewsMorphTagger, NewsSyntaxParser, NewsNERTagger, \
-    PER, LOC, NamesExtractor, DatesExtractor, Doc
+    PER, LOC, NamesExtractor, DatesExtractor, Doc, DocSpan
 from enums import ACTIONS, SUBJECTS
 from bot_dict import bot_dict
 
@@ -130,52 +130,51 @@ class Parse_client:
 
     def get_name(self, message, left_tokens):
         names = [i.fact for i in self.names_extractor(message)]
-        new_left_tokens = left_tokens
-        fio = ''
-        for j in left_tokens:
-            token = self.doc.tokens[j]
-            if token.pos == 'PROPN':
-                for f in names:
-                    if (f.first and f.first in token.text) or (f.last and f.last in token.text) or (f.middle and f.middle in token.text):
-                        if f.last:
-                            for i in left_tokens:
-                                if self.doc.tokens[i].text == f.last:
-                                    new_left_tokens.remove(i)
-                                    fio = self.doc.tokens[i].text.capitalize()
-                        if f.first:
-                            for i in left_tokens:
-                                if self.doc.tokens[i].text == f.first:
-                                    new_left_tokens.remove(i)
-                                    if len(fio) > 0:
-                                        fio += ' '
-                                    fio += self.doc.tokens[i].text.capitalize()
-                        if f.middle:
-                            for i in left_tokens:
-                                if self.doc.tokens[i].text == f.middle:
-                                    new_left_tokens.remove(i)
-                                    if len(fio) > 0:
-                                        fio += ' '
-                                    fio += self.doc.tokens[i].text.capitalize()
-                        doc = Doc(fio)
-                        doc.segment(self.segmenter)
-                        doc.tag_morph(self.morph_tagger)
-                        doc.tag_ner(self.ner_tagger)
-                        gender_y = 0
-                        gender_x = 0
-                        for token in doc.morph.tokens:          # наташа может неправильно определять пол в ФИО, нужно править
-                            # token.feats['Case'] = 'Nom'
-                            if token.feats['Gender'] == 'Fem':
-                                gender_y += 1
-                            if token.feats['Gender'] == 'Masc':
-                                gender_x += 1
-                        need_male = 'Fem'
-                        if gender_x > gender_y:
-                            need_male = 'Masc'
-                        for token in doc.morph.tokens:
-                            token.feats['Gender'] = need_male
-                        doc.spans[0].normalize(self.morph_vocab)
-                        return doc.spans[0].normal, new_left_tokens
-        return '', new_left_tokens
+        if len(names) == 0:
+            return '', left_tokens
+        new_left_tokens = left_tokens.copy()
+        fio_tokens = {
+            'last': None,
+            'first': None,
+            'middle': None
+        }
+        for name in names:
+            for i in left_tokens:
+                token = self.doc.tokens[i]
+                if name.last and token.text == name.last:
+                    if token.pos == 'PROPN' or (token.pos == 'NOUN' and fio_tokens['last'] == None):
+                        fio_tokens['last'] = token
+                        new_left_tokens.remove(i)
+                elif name.first and token.text == name.first:
+                    if token.pos == 'PROPN' or (token.pos == 'NOUN' and fio_tokens['first'] == None):
+                        fio_tokens['first'] = token
+                        new_left_tokens.remove(i)
+                elif name.middle and token.text == name.middle:
+                    if token.pos == 'PROPN' or (token.pos == 'NOUN' and fio_tokens['middle'] == None):
+                        fio_tokens['middle'] = token
+                        new_left_tokens.remove(i)
+        start_pos = len(message)
+        end_pos = 0
+        text = ''
+        tokens = []
+        gender = 'Fem'
+        if fio_tokens['first']:
+            gender = fio_tokens['first'].feats['Gender']
+        for key in fio_tokens.keys():
+            if fio_tokens[key]:
+                if fio_tokens[key].start < start_pos:
+                    start_pos = fio_tokens[key].start
+                if fio_tokens[key].stop > end_pos:
+                    end_pos = fio_tokens[key].stop
+                if len(text) > 0:
+                    text += ' '
+                text += fio_tokens[key].text
+                fio_tokens[key].feats['Gender'] = gender
+                fio_tokens[key].text = fio_tokens[key].text.capitalize()
+                tokens.append(fio_tokens[key])
+        doc_span = DocSpan(start_pos, end_pos, 'PER', text, tokens)
+        doc_span.normalize(self.morph_vocab)
+        return doc_span.normal, new_left_tokens
 
     def form_date(self, date_obj):
         day = 0
