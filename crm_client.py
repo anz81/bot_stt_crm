@@ -17,6 +17,9 @@ test_payload = {
     }
 }
 
+def time_to_seconds(t):
+    return (t.hour * 60 + t.minute) * 60
+
 def get_task_type(task_type):
     match task_type:
         case TASK_TYPE.CALL:
@@ -128,7 +131,7 @@ class CRM_client:
             telegram_name = message.from_user.first_name
         if message.from_user.username:
             telegram_id = message.from_user.username
-        contacts = list(filter(lambda c: c.name == contact_name, Contact.objects.all()))
+        contacts = list(filter(lambda c: contact_name in c.name, Contact.objects.all()))
         if len(contacts) > 0:
             contact = contacts[0]
             if not telegram_id == contact.telegram_id:
@@ -155,7 +158,7 @@ class CRM_client:
             telegram_name = message.from_user.first_name
         if message.from_user.username:
             telegram_id = message.from_user.username
-        contacts = list(filter(lambda c: c.name == contact_name, Contact.objects.all()))
+        contacts = list(filter(lambda c: contact_name in c.name, Contact.objects.all()))
         if len(contacts):
             contact = contacts[0]
             if telegram_id == contact.telegram_id:
@@ -176,12 +179,12 @@ class CRM_client:
         if payload['attributes']['name']:
             contact_name = payload['attributes']['name']
         else:
-            return {'status': False, 'text': 'Для изменения задачи необходимо указать ФИО'}
+            return {'status': False, 'text': 'Для создания задачи необходимо указать ФИО'}
         if message.from_user.first_name:
             telegram_name = message.from_user.first_name
         if message.from_user.username:
             telegram_id = message.from_user.username
-        contacts = list(filter(lambda c: c.name == contact_name, Contact.objects.all()))
+        contacts = list(filter(lambda c: contact_name in c.name, Contact.objects.all()))
         contact = 0
         if len(contacts) == 0:
             result_create = self.contact_create(payload, message)
@@ -192,15 +195,19 @@ class CRM_client:
             contact = contacts[0]
         if telegram_id == contact.telegram_id:
             task = Task()
-            # if 'task_type' in payload['attributes'].keys():
-            #     task.type_task = payload['attributes']['task_type']
+            if 'task_type' in payload['attributes'].keys():
+                task.type_task = payload['attributes']['task_type']
+            new_date = datetime.date.today()
             if not payload['attributes']['date'] == None:
-                new_date = 0
-                if not payload['attributes']['in_time'] == None:
-                    new_date = datetime.datetime.combine(payload['attributes']['date'], payload['attributes']['in_time'])
-                else:
-                    new_date = datetime.datetime.combine(payload['attributes']['date'], datetime.time(23, 59, 59, 0))
-                task.complete_till = new_date
+                new_date = payload['attributes']['date']
+            if not payload['attributes']['in_time'] == None:
+                new_date = datetime.datetime.combine(new_date, payload['attributes']['in_time'])
+                if not payload['attributes']['to_time'] == None:
+                    task.duration_sec = time_to_seconds(payload['attributes']['to_time']) - time_to_seconds(payload['attributes']['in_time'])
+            else:
+                new_date = datetime.datetime.combine(new_date, datetime.time(23, 59, 59, 0))
+
+            task.complete_till = new_date
             task.entity_id = contact.id
             task.entity_type = 'contacts'
             task.is_completed = False
@@ -228,19 +235,19 @@ class CRM_client:
             telegram_name = message.from_user.first_name
         if message.from_user.username:
             telegram_id = message.from_user.username
-        contacts = list(filter(lambda c: c.name == contact_name, Contact.objects.all()))
+        contacts = list(filter(lambda c: contact_name in c.name, Contact.objects.all()))
         if len(contacts) > 0:
             contact = contacts[0]
             if telegram_id == contact.telegram_id:
                 tasks = Task.objects.all()
                 task = Task()
                 for t in tasks:
-                    if t.entity_id == contact.id and not t.is_completed:
+                    if t.entity_id == contact.id and t.task_type_id == get_task_type(payload['attributes']['task_type']) and not t.is_completed:
                         task = t
                         break
                 if not task.id == None:
-                    if not payload['attributes']['task_type'] == None:
-                        task.task_type_id = get_task_type(payload['attributes']['task_type'])
+                    # if not payload['attributes']['task_type'] == None:
+                    #     task.task_type_id = get_task_type(payload['attributes']['task_type'])
                     new_date = 0
                     if not payload['attributes']['date'] == None:
                         if not payload['attributes']['in_time'] == None:
@@ -252,6 +259,8 @@ class CRM_client:
                             new_date = datetime.datetime.combine(task.complete_till.date(), payload['attributes']['in_time'])
                     if not new_date == 0:
                         task.complete_till = new_date
+                    if not payload['attributes']['to_time'] == None:
+                        task.duration_sec = time_to_seconds(payload['attributes']['to_time']) - time_to_seconds(task.complete_till.time())
                     task.text += '\n' + message.text
                     task.save()
                     return {'status': True, 'text': f'Задача для контакта {contact_name} изменена'}
@@ -274,11 +283,11 @@ class CRM_client:
             telegram_name = message.from_user.first_name
         if message.from_user.username:
             telegram_id = message.from_user.username
-        contacts = list(filter(lambda c: c.name == contact_name, Contact.objects.all()))
+        contacts = list(filter(lambda c: contact_name in c.name, Contact.objects.all()))
         if len(contacts) > 0:
             contact = contacts[0]
             if telegram_id == contact.telegram_id:
-                task_filtered = list(filter(lambda t: t.entity_id == contact.id and not t.is_completed, Task.objects.all()))
+                task_filtered = list(filter(lambda t: t.entity_id == contact.id and t.task_type_id == get_task_type(payload['attributes']['task_type']) and not t.is_completed, Task.objects.all()))
                 if len(task_filtered) > 0:
                     task = task_filtered[0]
                     task.is_completed = True
