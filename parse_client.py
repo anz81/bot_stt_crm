@@ -153,26 +153,24 @@ class Parse_client:
                     if token.pos == 'PROPN' or (token.pos == 'NOUN' and fio_tokens['middle'] == None):
                         fio_tokens['middle'] = token
                         new_left_tokens.remove(i)
-        start_pos = len(message)
-        end_pos = 0
         text = ''
         tokens = []
         gender = 'Fem'
+        start_pos = 0
         if fio_tokens['first']:
             gender = fio_tokens['first'].feats['Gender']
         for key in fio_tokens.keys():
             if fio_tokens[key]:
-                if fio_tokens[key].start < start_pos:
-                    start_pos = fio_tokens[key].start
-                if fio_tokens[key].stop > end_pos:
-                    end_pos = fio_tokens[key].stop
+                fio_tokens[key].start = start_pos
+                start_pos += len(fio_tokens[key].text)
+                fio_tokens[key].stop = start_pos - 1
                 if len(text) > 0:
                     text += ' '
                 text += fio_tokens[key].text
                 fio_tokens[key].feats['Gender'] = gender
                 fio_tokens[key].text = fio_tokens[key].text.capitalize()
                 tokens.append(fio_tokens[key])
-        doc_span = DocSpan(start_pos, end_pos, 'PER', text, tokens)
+        doc_span = DocSpan(0, start_pos - 1, 'PER', text, tokens)
         doc_span.normalize(self.morph_vocab)
         return doc_span.normal, new_left_tokens
 
@@ -203,56 +201,55 @@ class Parse_client:
         event_time = None
         if self.doc.tokens[i].text not in ('с', 'в', 'по', 'до'):         # если не эти 3 предлога, то выходим
             return None
-        new_left_tokens = left_tokens
+        new_left_tokens = left_tokens.copy()
         new_left_tokens.remove(i)
 
-        head_id = self.doc.tokens[i].head_id                        # ищем токены с указанным head_id
         token = self.doc.tokens[i + 1]
-        if token.id == head_id:
+        # if token.id == head_id:
             # if token.text == 'часов':                             # TODO: время можно написать в формате восемь часов пять минут
             #     event_time = ''                                   # этот кейс сейчас не обрабатывается
         # if token.rel == 'nummod':
-            if len(token.text) == 4:
-                try:
-                    hours = int(token.text[:2])
-                    minutes = int(token.text[2:])
-                    event_time = datetime.time(hours, minutes, 0, 0)
-                    new_left_tokens.remove(i + 1)
-                except Exception:
-                    print('>>>>>>>> Can\'t parse time!!! p.0')
-                    print(self.doc.tokens)
-            elif '-' in token.text:                               # если время записано в формате 19-30
-                time_part = token.text.split('-')
-                if len(time_part) != 2:
-                    print('>>>>>>>> Can\'t parse time!!! p.1')
-                    print(self.doc.tokens)
-                try:
-                    hours = int(time_part[0])
-                    minutes = int(time_part[1])
-                    event_time = datetime.time(hours, minutes, 0, 0)
-                    new_left_tokens.remove(i + 1)
-                except Exception:
-                    print('>>>>>>>> Can\'t parse time!!! p.2')
-                    print(self.doc.tokens)
-            elif self.doc.tokens[i + 2].text == ':':              # если время записано в формате 19:30
-                try:
-                    hours = int(token.text)
-                    minutes = int(self.doc.tokens[i + 3].text)
-                    event_time = datetime.time(hours, minutes, 0, 0)
-                    for j in range(1, 4):
-                        new_left_tokens.remove(i + j)
+        if len(token.text) == 4:
+            try:
+                hours = int(token.text[:2])
+                minutes = int(token.text[2:])
+                event_time = datetime.time(hours, minutes, 0, 0)
+                new_left_tokens.remove(i + 1)
+            except Exception:
+                print('>>>>>>>> Can\'t parse time!!! p.0')
+                print(self.doc.tokens)
+        elif '-' in token.text:                               # если время записано в формате 19-30
+            time_part = token.text.split('-')
+            if len(time_part) != 2:
+                print('>>>>>>>> Can\'t parse time!!! p.1')
+                print(self.doc.tokens)
+            try:
+                hours = int(time_part[0])
+                minutes = int(time_part[1])
+                event_time = datetime.time(hours, minutes, 0, 0)
+                new_left_tokens.remove(i + 1)
+            except Exception:
+                print('>>>>>>>> Can\'t parse time!!! p.2')
+                print(self.doc.tokens)
+        elif self.doc.tokens[i + 2].text == ':':              # если время записано в формате 19:30
+            try:
+                hours = int(token.text)
+                minutes = int(self.doc.tokens[i + 3].text)
+                event_time = datetime.time(hours, minutes, 0, 0)
+                for j in range(1, 4):
+                    new_left_tokens.remove(i + j)
 
-                except Exception:
-                    print('>>>>>>>> Can\'t parse time!!! p.3')
-                    print(self.doc.tokens)
-            elif len(token.text) <= 2:
-                try:
-                    hours = int(token.text)
-                    event_time = datetime.time(hours, 0, 0, 0)
-                    new_left_tokens.remove(i + 1)
-                except Exception:
-                    print('>>>>>>>> Can\'t parse time!!! p.0')
-                    print(self.doc.tokens)
+            except Exception:
+                print('>>>>>>>> Can\'t parse time!!! p.3')
+                print(self.doc.tokens)
+        elif len(token.text) <= 2:
+            try:
+                hours = int(token.text)
+                event_time = datetime.time(hours, 0, 0, 0)
+                new_left_tokens.remove(i + 1)
+            except Exception:
+                print('>>>>>>>> Can\'t parse time!!! p.0')
+                print(self.doc.tokens)
         if event_time:
             match self.doc.tokens[i].text:
                 case 'с':
@@ -280,7 +277,7 @@ class Parse_client:
         for up_key in bot_dict.keys():
             for down_key in bot_dict[up_key].keys():
                 values = bot_dict[up_key][down_key]['values']
-                if tokens[index].lemma in values or tokens[index].text in values:
+                if tokens[index].lemma.lower() in values or tokens[index].text.lower() in values:
                     return {'found': True, 'up_key': up_key, 'down_key': down_key, 'parts_value': 1}
                 for value in values:
                     if ' ' in value:
