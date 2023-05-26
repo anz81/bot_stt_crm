@@ -246,8 +246,8 @@ class CRM_client:
                         task = t
                         break
                 if not task.id == None:
-                    # if not payload['attributes']['task_type'] == None:
-                    #     task.task_type_id = get_task_type(payload['attributes']['task_type'])
+                    if not payload['attributes']['task_type'] == None:
+                        task.task_type_id = get_task_type(payload['attributes']['task_type'])
                     new_date = 0
                     if not payload['attributes']['date'] == None:
                         if not payload['attributes']['in_time'] == None:
@@ -287,7 +287,7 @@ class CRM_client:
         if len(contacts) > 0:
             contact = contacts[0]
             if telegram_id == contact.telegram_id:
-                task_filtered = list(filter(lambda t: t.entity_id == contact.id and not t.is_completed, Task.objects.all()))    # and t.task_type_id == get_task_type(payload['attributes']['task_type']) 
+                task_filtered = list(filter(lambda t: t.entity_id == contact.id and not t.is_completed, Task.objects.all()))    # and t.task_type_id == get_task_type(payload['attributes']['task_type'])
                 if len(task_filtered) > 0:
                     task = task_filtered[0]
                     task.is_completed = True
