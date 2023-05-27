@@ -59,14 +59,16 @@ def voice_processing(message):
     downloaded_file = bot.download_file(file_info.file_path)
     with open(file_name_full, 'wb') as new_file:
         new_file.write(downloaded_file)
-    # os.system("ffmpeg -i " + file_name_full + "  " + file_name_full_converted)
     try:
         # stt = STT()
         # result = stt.audio_to_text(file_name_full)
         result = ss.recognize(file_name_full)
-        # result = recognise(file_name_full_converted)
         if not result['status']:
-            return reply_to_bot(message, result)
+            os.system("ffmpeg -i " + file_name_full + "  " + file_name_full_converted)
+            result = recognise(file_name_full_converted)
+            os.remove(file_name_full_converted)
+            if not result['status']:
+                return reply_to_bot(message, result)
         print(result['text'])
         message.text = result['text']
         bot.reply_to(message, result['text'])
@@ -74,7 +76,6 @@ def voice_processing(message):
     except Exception as e:
         print(e)
     os.remove(file_name_full)
-    # os.remove(file_name_full_converted)
 
 crm_client = CRM_client()
 parse_client = Parse_client()
