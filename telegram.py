@@ -67,6 +67,7 @@ def voice_processing(message):
         # result = recognise(file_name_full_converted)
         if not result['status']:
             return reply_to_bot(message, result)
+        print(result['text'])
         message.text = result['text']
         bot.reply_to(message, result['text'])
         process_command(message)
