@@ -49,7 +49,7 @@ class Salute_Speech():
                 headers=headers,
                 files={'report.xls': f},
                 verify=False,
-                timeout=15
+                timeout=30
             )
             if response.status_code == 200:
                 text = ''
