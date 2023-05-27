@@ -48,7 +48,8 @@ class Salute_Speech():
                 url='https://smartspeech.sber.ru/rest/v1/speech:recognize',
                 headers=headers,
                 files={'report.xls': f},
-                verify=False
+                verify=False,
+                timeout=15
             )
             if response.status_code == 200:
                 text = ''
