@@ -2,6 +2,6 @@ refresh_token.txt
 access_token.txt
 __pycache__
 ready
-voice
+voice/*.ogg
 models
 1.py
