@@ -1,16 +1,17 @@
 import telebot
 import uuid
 import os
-# import speech_recognition as sr
+import speech_recognition as sr
 from crm_client import CRM_client
 from parse_client import Parse_client
 from consts import TELEGRAM_API_KEY
-# from stt import STT
 from salute_speech import Salute_Speech
 
 bot = telebot.TeleBot(TELEGRAM_API_KEY)
-# r = sr.Recognizer()
+r = sr.Recognizer()
 ss = Salute_Speech()
+crm_client = CRM_client()
+parse_client = Parse_client()
 
 def recognise(filename):
     with sr.AudioFile(filename) as source:
@@ -60,8 +61,6 @@ def voice_processing(message):
     with open(file_name_full, 'wb') as new_file:
         new_file.write(downloaded_file)
     try:
-        # stt = STT()
-        # result = stt.audio_to_text(file_name_full)
         result = ss.recognize(file_name_full)
         if not result['status']:
             os.system("ffmpeg -i " + file_name_full + "  " + file_name_full_converted)
@@ -77,7 +76,5 @@ def voice_processing(message):
         print(e)
     os.remove(file_name_full)
 
-crm_client = CRM_client()
-parse_client = Parse_client()
 
 bot.infinity_polling()
