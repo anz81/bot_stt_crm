@@ -9,7 +9,6 @@ from salute_speech import Salute_Speech
 
 bot = telebot.TeleBot(TELEGRAM_API_KEY)
 r = sr.Recognizer()
-ss = Salute_Speech()
 crm_client = CRM_client()
 parse_client = Parse_client()
 
@@ -61,6 +60,7 @@ def voice_processing(message):
     with open(file_name_full, 'wb') as new_file:
         new_file.write(downloaded_file)
     try:
+        ss = Salute_Speech()
         result = ss.recognize(file_name_full)
         if not result['status']:
             os.system("ffmpeg -i " + file_name_full + "  " + file_name_full_converted)
