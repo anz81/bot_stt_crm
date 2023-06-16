@@ -31,13 +31,16 @@ class BaseInteraction:
     def _get_url(self, path):
         return "https://{subdomain}.amocrm.ru/api/v4/{path}".format(subdomain=self._token_manager.subdomain, path=path)
 
-    def _request(self, method, path, data={}, params=None, headers=None):
+    def _request(self, method, path, data={}, params=None, headers=None, path_override=None):
         headers = headers or {}
         headers.update(self.get_headers())
-        # print(f'Request type: {method}, path: {path}, data: {data}, params: {params}, headers: {headers}')
         try:
-            response = self._session.request(method, url=self._get_url(path), json=data, params=params, headers=headers)
-            # print(response.json())
+            url = f"https://{self._token_manager.subdomain}.amocrm.ru/{path}"
+            if not path_override:
+                url=self._get_url(path)
+            # print(f'Request type: {method}, path: {url}, data: {data}, params: {params}, headers: {headers}')
+            response = self._session.request(method, url=url, json=data, params=params, headers=headers)
+            # print(response.text)
         except requests.exceptions.ConnectionError as e:
             raise exceptions.AmoApiException(e.args[0].args[0])  # Sometimes Connection aborted.
         if response.status_code == 204:
@@ -52,11 +55,11 @@ class BaseInteraction:
             raise ValueError("Тариф не позволяет включать покупателей")
         raise exceptions.AmoApiException("Wrong status {} ({})".format(response.status_code, response.text))
 
-    def request(self, method, path, data=None, params=None, headers=None, include=None):
+    def request(self, method, path, data=None, params=None, headers=None, include=None, path_override=None):
         params = params or {}
         if include:
             params["with"] = ",".join(include)
-        return self._request(method, path, data=data, params=params, headers=headers)
+        return self._request(method, path, data=data, params=params, headers=headers, path_override=path_override)
 
     def _list(self, path, page, include=None, limit=250, query=None, filters: Tuple[Filter] = (), order=None):
         assert order is None or len(order) == 1

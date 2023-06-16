@@ -56,3 +56,10 @@ class Lead(model.Model):
     tasks = TaskField("leads")
 
     objects = manager.Manager(LeadsInteraction())
+
+    def close(self, id):
+        data = {
+            'lead[STATUS]': 143,
+            'ID': id
+        }
+        interactions = self.objects.request('POST', '/leads/detail/', data)

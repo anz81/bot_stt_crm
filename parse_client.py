@@ -124,7 +124,13 @@ class Parse_client:
         phone_items = self.phone_extract(last_phone.replace(',', '').replace('.', ''))
         if len(phone_items) > 0:
             payload['attributes']['phone'] = phone_items[0]
-
+        
+        if payload['action'] == ACTIONS.UNPARSED and payload['subject'] == SUBJECTS.UNPARSED and \
+            payload['attributes']['phone'] != None and \
+            (payload['attributes']['first_name'] != None or payload['attributes']['last_name']):
+                payload['action'] = ACTIONS.CREATE
+                payload['subject'] = SUBJECTS.CONTACT
+                
         print(payload)
         return payload
 

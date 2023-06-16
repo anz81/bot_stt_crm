@@ -6,6 +6,7 @@ from crm_client import CRM_client
 from parse_client import Parse_client
 from consts import TELEGRAM_API_KEY
 from salute_speech import Salute_Speech
+from enums import ACTIONS, SUBJECTS
 
 bot = telebot.TeleBot(TELEGRAM_API_KEY)
 r = sr.Recognizer()
@@ -35,7 +36,10 @@ def reply_to_bot(message, result):
 
 def process_command(message):
     get_actions = parse_client.parse(message.text)
-    result = crm_client.proceed_actions(get_actions, message)
+    proceed_actions(get_actions, message)
+
+def proceed_actions(payload, message):
+    result = crm_client.proceed_actions(payload, message)
     print(result['text'])
     reply_to_bot(message, result)
 
@@ -45,6 +49,30 @@ def send_welcome(message):
 Привет, я могу отправлять сообщения в CRM.
 Введите текст, или надиктуйте сообщение что я должен сделать\
 """)
+
+@bot.message_handler(content_types=['contact'])
+def get_contact_messages(message):
+    payload = {
+        'action': ACTIONS.CREATE,
+        'subject': SUBJECTS.CONTACT,
+        'attributes': {}
+    }
+    if message.contact.phone_number:
+        payload['attributes']['phone'] = message.contact.phone_number
+    fio = ''
+    if hasattr(message.contact, 'first_name'):
+        fio += message.contact.first_name
+    if hasattr(message.contact, 'last_name'):
+        if len(fio) > 0:
+            fio += ' '
+        fio += message.contact.last_name
+    if hasattr(message.contact, 'middle_name'):
+        if len(fio) > 0:
+            fio += ' '
+        fio += message.contact.middle_name
+    payload['attributes']['name'] = fio
+    print(payload)
+    proceed_actions(payload, message)
 
 @bot.message_handler(content_types=['text'])
 def get_text_messages(message):
@@ -76,5 +104,5 @@ def voice_processing(message):
         print(e)
     os.remove(file_name_full)
 
-
+print('Bot started...')
 bot.infinity_polling()

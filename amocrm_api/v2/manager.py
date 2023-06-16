@@ -29,3 +29,6 @@ class Manager:
 
     def all(self):
         return self.filter()
+
+    def request(self, method, path, headers, data):
+        return self._interaction.request(method=method, path=path, headers=headers, data=data, path_override=True)
