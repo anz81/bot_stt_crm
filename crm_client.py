@@ -38,9 +38,9 @@ def get_task_type(task_type):
     # type_task = custom_field.TextCustomField(name='Тип задачи', code='CF_T_TaskType', auto_create=True)
 
 class Contact(_Contact):
-    telegram_name = custom_field.TextCustomField(name='Имя пользователя Телеграм', field_id=911699)
-    telegram_id = custom_field.TextCustomField(name='Id пользователя Телеграм', field_id=911701)
-    phone = custom_field.TextCustomField(name='Телефон контакта', field_id=911703)
+    telegram_name = custom_field.TextCustomField(name='Имя пользователя Телеграм', field_id=929965)
+    telegram_id = custom_field.TextCustomField(name='Id пользователя Телеграм', field_id=929967)
+    phone = custom_field.TextCustomField(name='Телефон контакта', field_id=929963)
 
 class Lead(_Lead):
     pass
