@@ -36,12 +36,10 @@ def reply_to_bot(message, result):
 
 def process_command(message):
     get_actions = parse_client.parse(message.text)
-    print(get_actions)
-    # proceed_actions(get_actions, message)
+    proceed_actions(get_actions, message)
 
 def proceed_actions(payload, message):
     result = crm_client.proceed_actions(payload, message)
-    print(result['text'])
     reply_to_bot(message, result)
 
 @bot.message_handler(commands=['help', 'start'])
@@ -97,7 +95,6 @@ def voice_processing(message):
             os.remove(file_name_full_converted)
             if not result['status']:
                 return reply_to_bot(message, result)
-        print(result['text'])
         message.text = result['text']
         bot.reply_to(message, result['text'])
         process_command(message)

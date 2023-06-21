@@ -84,6 +84,14 @@ class CRM_client:
             case _:
                 return {'status': False, 'text': 'Ошибка в субъекте, я работаю только со следующими сущностями: контакт, задача'}
 
+    def find_contact(name):
+        names = name.split(' ')
+        contacts = list(filter(lambda c: names in c.name.split(' '), Contact.objects.all()))
+        if len(contacts):
+            return contacts[0]
+        else:
+            return None
+
     def contact_create(self, payload, message):
         contact_name = None
         contact_phone = None
@@ -93,8 +101,8 @@ class CRM_client:
             contact_name = payload['attributes']['name']
         else:
             return {'status': False, 'text': 'Для создания контакта необходимо указать его ФИО'}
-        contacts = list(filter(lambda c: c.name == contact_name, Contact.objects.all()))
-        if len(contacts) > 0:
+        contact = self.find_contact(contact_name)
+        if contact != None:
             return {'status': False, 'text': f'Контакт {contact_name} уже существует!'}
         if 'phone' in payload['attributes'].keys():
             contact_phone = payload['attributes']['phone']
@@ -131,16 +139,11 @@ class CRM_client:
             telegram_name = message.from_user.first_name
         if message.from_user.username:
             telegram_id = message.from_user.username
-        contacts = list(filter(lambda c: contact_name in c.name, Contact.objects.all()))
-        if len(contacts) > 0:
-            contact = contacts[0]
+        contact = self.find_contact(contact_name)
+        if contact != None:            
             if not telegram_id == contact.telegram_id:
                 return {'status': False, 'text': f'Вы не можете менять контакт {contact_name}'}
             contact.phone = contact_phone
-            # if contact.text:
-            #     contact.text += '\n' + message.text
-            # else:
-            #     contact.text = message.text
             contact.save()
             return {'status': True, 'text': f'Изменения для контакта {contact_name} внесены'}
         else:
@@ -158,12 +161,10 @@ class CRM_client:
             telegram_name = message.from_user.first_name
         if message.from_user.username:
             telegram_id = message.from_user.username
-        contacts = list(filter(lambda c: contact_name in c.name, Contact.objects.all()))
-        if len(contacts):
-            contact = contacts[0]
+        contact = self.find_contact(contact_name)
+        if contact != None:            
             if telegram_id == contact.telegram_id:
                 contact.tags = []
-                # contact.text += '\n' + message.text
                 contact.save()
                 return {'status': True, 'text': f'Контакт {contact_name} удален'}
             else:
@@ -184,15 +185,12 @@ class CRM_client:
             telegram_name = message.from_user.first_name
         if message.from_user.username:
             telegram_id = message.from_user.username
-        contacts = list(filter(lambda c: contact_name in c.name, Contact.objects.all()))
-        contact = 0
-        if len(contacts) == 0:
+        contact = self.find_contact(contact_name)
+        if contact == None:
             result_create = self.contact_create(payload, message)
             if not result_create['status']:
                 return result_create
-            contact = list(filter(lambda c: c.name == contact_name, Contact.objects.all()))[0]
-        else:
-            contact = contacts[0]
+            contact = self.find_contact(contact_name)        
         if telegram_id == contact.telegram_id:
             task = Task()
             if 'task_type' in payload['attributes'].keys():
@@ -235,9 +233,8 @@ class CRM_client:
             telegram_name = message.from_user.first_name
         if message.from_user.username:
             telegram_id = message.from_user.username
-        contacts = list(filter(lambda c: contact_name in c.name, Contact.objects.all()))
-        if len(contacts) > 0:
-            contact = contacts[0]
+        contact = self.find_contact(contact_name)
+        if contact != None:
             if telegram_id == contact.telegram_id:
                 tasks = Task.objects.all()
                 task = Task()
@@ -283,9 +280,8 @@ class CRM_client:
             telegram_name = message.from_user.first_name
         if message.from_user.username:
             telegram_id = message.from_user.username
-        contacts = list(filter(lambda c: contact_name in c.name, Contact.objects.all()))
-        if len(contacts) > 0:
-            contact = contacts[0]
+        contact = self.find_contact(contact_name)
+        if contact != None:
             if telegram_id == contact.telegram_id:
                 task_filtered = list(filter(lambda t: t.entity_id == contact.id and not t.is_completed, Task.objects.all()))    # and t.task_type_id == get_task_type(payload['attributes']['task_type'])
                 if len(task_filtered) > 0:
