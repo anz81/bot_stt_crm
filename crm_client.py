@@ -85,12 +85,12 @@ class CRM_client:
                 return {'status': False, 'text': 'Ошибка в субъекте, я работаю только со следующими сущностями: контакт, задача'}
 
     def find_contact(self, name):
-        names = name.split(' ')
+        names = set(name.split(' '))
         print(names)
-        contacts = list(filter(lambda c: names in c.name.split(' '), Contact.objects.all()))
+        contacts = list(filter(lambda c: names in set(c.name.split(' ')), Contact.objects.all()))
         c = list(Contact.objects.all())[0]
-        print(c.name.split(' '))
-        print(names in c.name.split(' '))
+        print(set(c.name.split(' ')))
+        print(names in set(c.name.split(' ')))
         if len(contacts):
             return contacts[0]
         else:
