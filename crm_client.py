@@ -86,9 +86,11 @@ class CRM_client:
 
     def find_contact(self, name):
         names = name.split(' ')
+        print(names)
         contacts = list(filter(lambda c: names in c.name.split(' '), Contact.objects.all()))
-        print(list(Contact.objects.all()))
-        print(contacts)
+        c = list(Contact.objects.all())[0]
+        print(c.name.split(' '))
+        print(names in c.name.split(' '))
         if len(contacts):
             return contacts[0]
         else:
