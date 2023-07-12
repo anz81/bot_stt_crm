@@ -1,4 +1,5 @@
 import telebot
+import time
 import uuid
 import os
 import speech_recognition as sr
@@ -102,5 +103,10 @@ def voice_processing(message):
         print(e)
     os.remove(file_name_full)
 
-print('Bot started...')
-bot.infinity_polling()
+while True:
+    try:
+        print('Bot started...')
+        bot.infinity_polling()
+    except BaseException as e:
+        print(e)
+        time.sleep(5)

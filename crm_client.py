@@ -25,9 +25,9 @@ def get_task_type(task_type):
         case TASK_TYPE.CALL:
             return 1
         case TASK_TYPE.TAKE_IN:
-            return 2954858
+            return 2986446
         case TASK_TYPE.TAKE_OFF:
-            return 2954854
+            return 2986442
         case _:
             return 1
 
@@ -38,9 +38,9 @@ def get_task_type(task_type):
     # type_task = custom_field.TextCustomField(name='Тип задачи', code='CF_T_TaskType', auto_create=True)
 
 class Contact(_Contact):
-    telegram_name = custom_field.TextCustomField(name='Имя пользователя Телеграм', field_id=929965)
-    telegram_id = custom_field.TextCustomField(name='Id пользователя Телеграм', field_id=929967)
-    phone = custom_field.TextCustomField(name='Телефон контакта', field_id=929963)
+    telegram_name = custom_field.TextCustomField(name='Имя пользователя Телеграм', field_id=1300507)
+    telegram_id = custom_field.TextCustomField(name='Id пользователя Телеграм', field_id=1300521)
+    phone = custom_field.TextCustomField(name='Телефон контакта', field_id=1300523)
 
 class Lead(_Lead):
     pass
@@ -86,11 +86,7 @@ class CRM_client:
 
     def find_contact(name):
         names = name.split(' ')
-        contacts = list(filter(lambda c: names in c.name.split(' '), Contact.objects.all()))
-        if len(contacts):
-            return contacts[0]
-        else:
-            return None
+          
 
     def contact_create(self, payload, message):
         contact_name = None
