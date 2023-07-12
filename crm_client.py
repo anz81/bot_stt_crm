@@ -86,7 +86,12 @@ class CRM_client:
 
     def find_contact(name):
         names = name.split(' ')
-          
+        contacts = list(filter(lambda c: names in c.name.split(' '), Contact.objects.all()))
+        if len(contacts):
+            return contacts[0]
+        else:
+            return None
+            
 
     def contact_create(self, payload, message):
         contact_name = None
