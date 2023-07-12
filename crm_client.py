@@ -84,14 +84,13 @@ class CRM_client:
             case _:
                 return {'status': False, 'text': 'Ошибка в субъекте, я работаю только со следующими сущностями: контакт, задача'}
 
-    def find_contact(name):
+    def find_contact(self, name):
         names = name.split(' ')
         contacts = list(filter(lambda c: names in c.name.split(' '), Contact.objects.all()))
         if len(contacts):
             return contacts[0]
         else:
             return None
-            
 
     def contact_create(self, payload, message):
         contact_name = None
